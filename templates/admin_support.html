@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+<h3>All Support Tickets</h3>
+
+{% for t in tickets %}
+
+<div class="card p-3 mt-3">
+
+<b>{{ t.subject }}</b><br>
+
+User: {{ t.user.email }}<br>
+
+Status: {{ t.status }}
+
+<br>
+
+<a href="/support/{{ t.id }}" class="btn btn-primary mt-2">
+    Open Chat
+</a>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

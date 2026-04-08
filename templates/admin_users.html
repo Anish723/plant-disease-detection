@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2 class="mb-4">👥 User Management</h2>
+
+        <form method="GET" action="/admin/users" class="mb-3">
+
+            <div class="input-group">
+
+                <input type="text"
+                name="search"
+                class="form-control"
+                placeholder="Search user by email or username">
+
+                <button class="btn btn-primary">
+                Search
+                </button>
+
+            </div>
+
+        </form>
+
+    {% for user in users %}
+
+        <div class="card mt-4 shadow p-3">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div class="d-flex align-items-center">
+
+                    <!-- Profile Picture -->
+                    {% if user.profile_image %}
+                        <img src="{{ url_for('static', filename=user.profile_image) }}"
+                             width="60" height="60"
+                             class="rounded-circle me-3">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='default.png') }}"
+                             width="60" height="60"
+                             class="rounded-circle me-3">
+                    {% endif %}
+
+                    <div>
+                        <h5 class="mb-0">{{ user.email }}</h5>
+                        <small>Username: {{ user.username }}</small><br>
+                        <small>Admin: {{ user.is_admin }}</small><br>
+                        <small>Locked: {{ user.is_locked }}</small>
+                    </div>
+
+                </div>
+
+                <div>
+
+                    {% if not user.is_admin %}
+
+                        {% if user.is_locked %}
+                            <a href="/admin/unlock-user/{{ user.id }}"
+                               class="btn btn-warning btn-sm">
+                                Unlock
+                            </a>
+                        {% endif %}
+
+                        <a href="/admin/delete-user/{{ user.id }}"
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm('Delete this user and all predictions?')">
+                            Delete
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <h6>Predictions</h6>
+
+            {% if user.predictions %}
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Result</th>
+                            <th>Confidence</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        {% for pred in user.predictions %}
+                        <tr>
+                            <td>
+                                <img src="{{ url_for('static', filename=pred.image_path) }}"
+                                     width="70">
+                            </td>
+                            <td>{{ pred.result }}</td>
+                            <td>{{ pred.confidence }}%</td>
+                            <td>
+                                <a href="/admin/delete-prediction/{{ pred.id }}"
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Delete this prediction?')">
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">No predictions available.</p>
+            {% endif %}
+
+        </div>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}

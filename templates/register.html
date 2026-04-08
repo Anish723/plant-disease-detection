@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card p-4 shadow">
+            <h3 class="text-center">Create Account</h3>
+
+            <form method="POST" action="{{ url_for('main.register') }}" id="signupForm">
+                
+                <input name="username" class="form-control mb-2" 
+                       placeholder="Username" required>
+
+                <input name="email" type="email" 
+                       class="form-control mb-2" 
+                       placeholder="Email" required>
+
+                <!-- Password Field -->
+                <div class="input-group mb-2">
+                    <input name="password" type="password" id="password"
+                           class="form-control"
+                           placeholder="Password" required>
+                    <button class="btn btn-outline-secondary" 
+                            type="button"
+                            onclick="togglePassword('password', this)">
+                        👁
+                    </button>
+                </div>
+
+                <!-- Confirm Password Field -->
+                <div class="input-group mb-2">
+                    <input name="confirm_password" type="password" id="confirm_password"
+                           class="form-control"
+                           placeholder="Confirm Password" required>
+                    <button class="btn btn-outline-secondary"
+                            type="button"
+                            onclick="togglePassword('confirm_password', this)">
+                        👁
+                    </button>
+                </div>
+
+                <!-- Strength Bar -->
+                <div class="progress mb-2" style="height: 8px;">
+                    <div id="strengthBar" class="progress-bar"></div>
+                </div>
+                <small id="strengthText"></small>
+
+                <!-- Rules -->
+                <div class="small text-muted mt-2">
+                    <div id="length">❌ 8-15 characters</div>
+                    <div id="capital">❌ At least 1 uppercase letter</div>
+                    <div id="special">❌ At least 1 special character</div>
+                    <div id="match">❌ Passwords match</div>
+                </div>
+
+                <button class="btn btn-success w-100 mt-3" 
+                        id="submitBtn" disabled>
+                    Sign Up
+                </button>
+            </form>
+
+            <div class="text-center mt-3">
+                <a href="{{ url_for('main.login') }}">Back to Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const password = document.getElementById("password");
+const confirmPassword = document.getElementById("confirm_password");
+const strengthBar = document.getElementById("strengthBar");
+const strengthText = document.getElementById("strengthText");
+const submitBtn = document.getElementById("submitBtn");
+
+function validatePassword() {
+    const value = password.value;
+    const confirm = confirmPassword.value;
+
+    let score = 0;
+
+    const lengthValid = value.length >= 8 && value.length <= 15;
+    const capitalValid = /[A-Z]/.test(value);
+    const specialValid = /[!@#$%^&*(),.?\":{}|<>]/.test(value);
+    const matchValid = value === confirm && value.length > 0;
+
+    document.getElementById("length").innerHTML =
+        lengthValid ? "✅ 8-15 characters" : "❌ 8-15 characters";
+
+    document.getElementById("capital").innerHTML =
+        capitalValid ? "✅ At least 1 uppercase letter" : "❌ At least 1 uppercase letter";
+
+    document.getElementById("special").innerHTML =
+        specialValid ? "✅ At least 1 special character" : "❌ At least 1 special character";
+
+    document.getElementById("match").innerHTML =
+        matchValid ? "✅ Passwords match" : "❌ Passwords match";
+
+    if (lengthValid) score++;
+    if (capitalValid) score++;
+    if (specialValid) score++;
+
+    // Strength logic
+    if (score === 1) {
+        strengthBar.style.width = "33%";
+        strengthBar.className = "progress-bar bg-danger";
+        strengthText.innerText = "Weak Password";
+    }
+    else if (score === 2) {
+        strengthBar.style.width = "66%";
+        strengthBar.className = "progress-bar bg-warning";
+        strengthText.innerText = "Medium Strength";
+    }
+    else if (score === 3) {
+        strengthBar.style.width = "100%";
+        strengthBar.className = "progress-bar bg-success";
+        strengthText.innerText = "Strong Password";
+    }
+    else {
+        strengthBar.style.width = "0%";
+        strengthText.innerText = "";
+    }
+
+    submitBtn.disabled = !(lengthValid && capitalValid && specialValid && matchValid);
+}
+
+function togglePassword(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+
+    if (field.type === "password") {
+        field.type = "text";
+        btn.innerHTML = "🙈";
+    } else {
+        field.type = "password";
+        btn.innerHTML = "👁";
+    }
+}
+
+password.addEventListener("input", validatePassword);
+confirmPassword.addEventListener("input", validatePassword);
+</script>
+
+{% endblock %}

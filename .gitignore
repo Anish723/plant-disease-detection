@@ -1,0 +1,20 @@
+venv/
+__pycache__/
+*.pyc
+
+# Models
+model/*.pth
+
+# Database
+*.db
+
+# Uploads
+static/uploads/
+static/reports/
+
+# RAG
+rag/vectorstore/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+<h3>My Support Tickets</h3>
+
+<form method="POST" action="/support/create">
+
+<input name="subject" class="form-control mb-2" placeholder="Subject" required>
+
+<textarea name="message" class="form-control mb-2" placeholder="Describe your issue..." required></textarea>
+
+<button class="btn btn-primary">Create Ticket</button>
+
+</form>
+
+<hr>
+
+{% for t in tickets %}
+
+<div class="card p-3 mt-3">
+
+<b>{{ t.subject }}</b><br>
+Status: {{ t.status }}
+
+<br>
+
+<a href="/support/{{ t.id }}" class="btn btn-sm btn-info mt-2">
+Open Chat
+</a>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

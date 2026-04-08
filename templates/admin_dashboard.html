@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <h2 class="mb-4">📊 Admin Analytics Dashboard</h2>
+
+    <!-- Stats Cards -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow p-4 text-center">
+                <h5>Total Users</h5>
+                <h2>{{ total_users }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow p-4 text-center">
+                <h5>Total Predictions</h5>
+                <h2>{{ total_predictions }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <div class="card p-3 shadow">
+                <h5 class="text-center">Disease Distribution (Bar)</h5>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-3 shadow">
+                <h5 class="text-center">Disease Distribution (Pie)</h5>
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Chart Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const labels = {{ labels | tojson }};
+    const values = {{ values | tojson }};
+
+    if (labels.length > 0) {
+
+        // BAR CHART
+        new Chart(document.getElementById("barChart"), {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Predictions",
+                    data: values,
+                    backgroundColor: "rgba(54, 162, 235, 0.6)"
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // PIE CHART
+        new Chart(document.getElementById("pieChart"), {
+            type: "pie",
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: [
+                        "#FF6384",
+                        "#36A2EB",
+                        "#FFCE56",
+                        "#4CAF50",
+                        "#9C27B0",
+                        "#FF9800"
+                    ]
+                }]
+            }
+        });
+
+    }
+
+});
+</script>
+
+{% endblock %}
