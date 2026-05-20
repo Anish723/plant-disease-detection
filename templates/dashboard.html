@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<h2 class="mb-4">Welcome, {{ current_user.username }}</h2>
+
+<!-- Upload Section -->
+
+<div class="card p-4 mb-4 shadow">
+
+<h4>
+<i class="bi bi-upload me-2"></i>    
+Upload Plant Leaf Image
+</h4>
+
+<form id="uploadForm" method="POST" enctype="multipart/form-data">
+
+<label class="form-label"
+<i class="bi bi-image me-2"></i>
+Choose Leaf Image:
+</label>
+
+<div id="dropArea" 
+class="border rounded p-4 text-center mb-3"
+style="background:#f8f9fa; cursor:pointer;">
+
+<i class="bi bi-cloud-upload" style="font-size:40px;"></i>
+
+<p class="mt-2">
+Drag & Drop your image here<br>
+or click to Upload
+</p>
+
+<input type="file"
+name="image"
+id="imageInput"
+style="display:none;">
+</div>
+
+<img id="imagePreview"
+class="img-thumbnail"
+style="max-width:250px; margin-top:10px; display:none;">
+
+<!-- Camera Button -->
+<button type="button"
+id="openCamera"
+class="btn btn-secondary mb-2">
+
+<i class="bi bi-camera me-2"></i>
+Open Camera
+
+</button>
+
+<br>
+
+<!-- Camera Stream -->
+<video id="cameraStream"
+width="250"
+autoplay
+style="display:none; margin-bottom:10px;">
+</video>
+
+<br>
+
+<!-- Capture Button -->
+<button type="button"
+id="captureImage"
+class="btn btn-warning mb-2"
+style="display:none;">
+<i class="bi bi-camera-fill me-2"></i>
+Capture Image
+</button>
+
+<!-- Image Preview -->
+<img id="imagePreview"
+style="max-width:250px; display:none; margin-bottom:10px;"
+class="img-thumbnail">
+
+<br>
+
+<button type="submit"
+class="btn btn-primary">
+<i class="bi bi-cpu me-2"></i>
+Predict
+</button>
+
+</form>
+
+<div id="result" class="mt-3"></div>
+
+<div id="heatmapResult"></div>
+
+<div id="reportDownload"></div>
+
+<!-- Chatbot -->
+
+<div class="card mt-4 p-3">
+
+<h5>🌿 Plant Disease Assistant</h5>
+
+<div id="chatbot-messages"
+style="height:220px; overflow-y:auto; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+</div>
+
+<div class="d-flex">
+
+<input type="text"
+id="chatbot-input"
+class="form-control"
+placeholder="Ask about plant diseases...">
+
+<button id="chatbot-send"
+class="btn btn-success ms-2">
+Send </button>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- Prediction History -->
+
+<div class="card p-4 shadow">
+
+<h4>Your Prediction History</h4>
+
+{% if predictions %}
+
+<table class="table table-bordered mt-3">
+
+<thead>
+
+<tr>
+<th>Image</th>
+<th>Result</th>
+<th>Confidence (%)</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for pred in predictions %}
+
+<tr>
+
+<td>
+<img src="{{ url_for('static', filename=pred.image_path) }}" width="100">
+</td>
+
+<td>{{ pred.result }}</td>
+
+<td>{{ pred.confidence }}</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+{% else %}
+
+<p class="mt-3">No predictions yet.</p>
+
+{% endif %}
+
+<div class="mt-3">
+
+<a href="/download-full-report" class="btn btn-success">
+
+Download Full Prediction Report
+
+</a>
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+
+let detectedDisease = null;
+
+const dropArea = document.getElementById("dropArea");
+const imageInput = document.getElementById("imageInput");
+const previewImage = document.getElementById("imagePreview");
+
+dropArea.addEventListener("click", () => {
+    imageInput.click();
+});
+
+dropArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropArea.style.backgroundColor = "#e9ecef";
+});
+
+dropArea.addEventListener("dragleave", (e) => {
+    dropArea.style.backgroundColor = "#f8f9fa";
+});
+
+dropArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropArea.style.background = "#f8f9fa";
+    const files = e.dataTransfer.files;
+    if(files.length > 0){
+        imageInput.files = files;
+        const file = files[0];
+        const reader = new FileReader();
+        reader.onload = function(e){
+            previewImage.src = e.target.result;
+            previewImage.style.display = "block";
+        }
+        reader.readAsDataURL(file);
+    }
+});
+
+// Image Preview
+
+imageInput.addEventListener("change", function(){
+
+const file = this.files[0];
+
+if(file){
+
+const reader = new FileReader();
+
+reader.onload = function(e){
+
+previewImage.src = e.target.result;
+previewImage.style.display = "block";
+
+}
+
+reader.readAsDataURL(file);
+
+}
+
+});
+
+
+// Prediction
+
+document.getElementById("uploadForm").addEventListener("submit", function(e){
+
+e.preventDefault();
+
+document.getElementById("result").innerHTML =
+`<div class="text-center mt-3">
+
+<div class="spinner-border text-success" role="status"></div>
+
+<p class="mt-2">
+<i class="bi bi-cpu"></i>
+Analyzing the leaf image, please wait...
+</p>
+
+</div>`;
+
+let formData = new FormData(this);
+
+fetch("/predict",{
+method:"POST",
+body:formData
+})
+
+.then(response=>response.json())
+
+.then(data=>{
+
+if(data.error){
+
+document.getElementById("result").innerHTML =
+`<div class="alert alert-danger">${data.error}</div>`;
+
+}
+
+else{
+
+detectedDisease = data.prediction;
+
+document.getElementById("result").innerHTML = `
+<div class="card shadow-sm border-success mt-3">
+<div class="card-header bg-success text-white">
+<i class="bi bi-cpu me-2"></i>
+Prediction Result
+</div>
+
+<div class="card-body">
+<p>
+<i class="bi bi-bug me-2 text-danger"></i>
+<b>Disease:</b> ${data.prediction}
+</p>
+
+<p>
+<i class="bi bi-bar-chart me-2 text-primary"></i>
+<b>Confidence:</b>
+</p>
+
+<div class="progress mb-3">
+<div class="progress-bar ${data.confidence > 85 ? "bg-success" : data.confidence > 60 ? "bg-warning" : "bg-danger"}"
+role="progressbar"
+style="width:${data.confidence}%">
+${data.confidence}%
+</div>
+</div>
+
+<p>
+<i class="bi bi-clock me-2 text-secondary"></i>
+<b>Prediction Time:</b> ${data.time} seconds
+</p>
+
+<a href="/download-report/${data.prediction_id}"
+class="btn btn-success btn-sm"
+<i class="bi bi-file-earmark-pdf me-2"></i>
+Download PDF Report
+</a>
+</div>
+</div>
+`;
+
+if(data.heatmap){
+
+document.getElementById("heatmapResult").innerHTML =
+`<h5>Disease Detection Area</h5>
+<img src="${data.heatmap}" width="250">`;
+
+}
+
+if(data.report){
+
+document.getElementById("reportDownload").innerHTML =
+`<a href="${data.report}" class="btn btn-success mt-2" download>
+Download Diagnosis Report
+</a>`;
+
+}
+
+botMessage("I detected " + data.prediction.replaceAll("_"," ") + ". You can ask me about causes, treatment, or prevention.");
+
+}
+
+});
+
+});
+
+
+// Chatbot
+
+const chatbotInput = document.getElementById("chatbot-input");
+const chatbotSend = document.getElementById("chatbot-send");
+const chatbotMessages = document.getElementById("chatbot-messages");
+
+chatbotSend.onclick = sendMessage;
+
+chatbotInput.addEventListener("keypress", function(e){
+
+if(e.key==="Enter"){
+e.preventDefault();
+sendMessage();
+}
+
+});
+
+function sendMessage(){
+
+const message = chatbotInput.value;
+
+if(message.trim()==="") return;
+
+addMessage(message,"user");
+
+chatbotInput.value="";
+
+fetch("/chatbot",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+message:message,
+disease:detectedDisease
+})
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+botMessage(data.reply);
+});
+
+}
+
+
+function addMessage(text,type){
+
+const msg=document.createElement("div");
+
+msg.style.margin="5px";
+
+msg.style.textAlign = type==="user" ? "right":"left";
+
+msg.innerText=text;
+
+chatbotMessages.appendChild(msg);
+
+chatbotMessages.scrollTop=chatbotMessages.scrollHeight;
+
+}
+
+
+function botMessage(text){
+
+let msg=document.createElement("div");
+
+msg.style.margin="5px";
+
+msg.style.textAlign="left";
+
+chatbotMessages.appendChild(msg);
+
+let i=0;
+
+function typing(){
+
+if(i<text.length){
+
+msg.innerHTML+=text.charAt(i);
+
+i++;
+
+setTimeout(typing,20);
+
+}
+
+}
+
+typing();
+
+}
+
+
+const openCameraBtn = document.getElementById("openCamera");
+const captureBtn = document.getElementById("captureImage");
+const video = document.getElementById("cameraStream");
+
+let stream = null;
+
+openCameraBtn.onclick = async () => {
+
+    try {
+
+        stream = await navigator.mediaDevices.getUserMedia({ video:true });
+
+        video.srcObject = stream;
+
+        video.style.display = "block";
+
+        captureBtn.style.display = "inline";
+
+    } catch(err){
+
+        alert("Camera access denied");
+
+    }
+
+};
+
+captureBtn.onclick = () => {
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.drawImage(video,0,0);
+
+    canvas.toBlob(blob=>{
+
+        const file = new File([blob],"camera.jpg",{type:"image/jpeg"});
+
+        const dataTransfer = new DataTransfer();
+
+        dataTransfer.items.add(file);
+
+        imageInput.files = dataTransfer.files;
+
+        previewImage.src = URL.createObjectURL(blob);
+
+        previewImage.style.display = "block";
+
+        stream.getTracks().forEach(track => track.stop());
+        
+        video.style.display = "none";
+
+    });
+
+};
+
+</script>
+
+{% endblock %}

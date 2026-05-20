@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+<h3>Support Chat</h3>
+
+<h5>
+Status: 
+<span class="badge 
+{% if ticket.status == 'open' %}
+    bg-success
+{% else %}
+    bg-danger
+{% endif %}
+">
+{{ ticket.status }}
+</span>
+</h5>
+
+<div id="chat-box" 
+style="height:400px; overflow-y:auto; padding:10px; background:#ece5dd; border-radius:10px;">
+
+{% for msg in ticket.messages %}
+
+<div class="d-flex mb-2 
+{% if msg.sender == 'user' %}justify-content-end{% else %}justify-content-start{% endif %}">
+
+    <div class="p-2 rounded shadow-sm chat-bubble 
+    {% if msg.sender == 'user' %}user-msg{% else %}admin-msg{% endif %}">
+
+        {{ msg.message }}
+
+        <div style="font-size:10px; color:gray; text-align:right;">
+            {{ msg.timestamp.strftime('%I:%M %p') }}
+        </div>
+
+    </div>
+
+</div>
+
+{% endfor %}
+
+<!-- TYPING INDICATOR INSIDE chat -->
+<div id="typing-msg" 
+     style="display:none; margin-top:5px;">
+
+    <div style="background:white; padding:8px 12px; border-radius:10px; display:inline-block; font-size:13px; color:gray;">
+        <span id="typing-text"></span>
+    </div>
+
+</div>
+
+</div>
+
+
+<div class="d-flex mt-2">
+
+    <!-- MESSAGE INPUT -->
+    <form method="POST" action="/support/send/{{ ticket.id }}" class="d-flex w-100">
+        <input type="hidden" id="currentUserId" value="{{ current_user.id }}">
+        <input type="hidden" id="ticketId" value="{{ ticket.id }}">
+        <input type="text"
+               name="message"
+               id="messageInput"
+               class="form-control me-2"
+               placeholder="Type a message..."
+               {% if ticket.status == "closed" %}disabled{% endif %}>
+
+        <button class="btn btn-success"
+            {% if ticket.status == "closed" %}disabled{% endif %}>
+            Send
+        </button>
+
+    </form>
+
+    <!-- CLOSE BUTTON -->
+    {% if ticket.status != "closed" %}
+    <a href="/support/close/{{ ticket.id }}"
+       class="btn btn-danger ms-2"
+       onclick="return confirm('Close this ticket?')">
+        Close
+    </a>
+    {% endif %}
+
+</div>
+
+</div>
+
+<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(){
+
+const socket = io();
+
+const chatBox = document.getElementById("chat-box");
+const inputBox = document.getElementById("messageInput");
+const ticketId = document.getElementById("ticketId").value;
+
+const typingMsg = document.getElementById("typing-msg");
+const typingText = document.getElementById("typing-text");
+
+// 🔥 Auto scroll
+if(chatBox){
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// 🔥 Join room
+socket.emit("join", { ticket_id: ticketId });
+
+// =====================
+// 🔔 SOUND FUNCTION
+// =====================
+function playSound(){
+    const audio = document.getElementById("notifSound");
+    if(audio){
+        audio.currentTime = 0;
+        audio.play().catch(()=>{});
+    }
+}
+
+// =====================
+// 🔥 REALTIME MESSAGE RECEIVE
+// =====================
+socket.on("receive_message", (data) => {
+
+    const div = document.createElement("div");
+
+    div.className = "d-flex mb-2 msg " +
+        (data.sender === "user" ? "justify-content-end" : "justify-content-start");
+
+    div.innerHTML = `
+        <div class="p-2 rounded shadow-sm chat-bubble 
+        ${data.sender === "user" ? "user-msg" : "admin-msg"}">
+
+            ${data.message}
+
+            <div style="font-size:10px; color:gray; text-align:right;">
+                ${data.time}
+            </div>
+
+        </div>
+    `;
+
+    chatBox.appendChild(div);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    playSound();
+});
+
+// =====================
+// ✍️ TYPING SYSTEM
+// =====================
+
+let typingTimeout;
+
+// send typing
+inputBox.addEventListener("input", () => {
+
+    socket.emit("typing", { ticket_id: ticketId });
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+        socket.emit("stop_typing", { ticket_id: ticketId });
+    }, 800);
+
+});
+
+// show typing
+socket.on("show_typing", (data) => {
+
+    typingText.innerText = data.name + " is typing...";
+    typingMsg.style.display = "flex";
+
+});
+
+// hide typing
+socket.on("hide_typing", () => {
+
+    typingMsg.style.display = "none";
+
+});
+
+});
+</script>
+
+<script>
+
+document.querySelector("form").addEventListener("submit", function(e){
+
+e.preventDefault();
+
+const input = document.getElementById("messageInput");
+const message = input.value;
+
+if(message.trim() === "") return;
+
+const socket = io();
+const ticketId = document.getElementById("ticketId").value;
+
+socket.emit("send_message", {
+    ticket_id: ticketId,
+    message: message,
+    time: new Date().toLocaleTimeString()
+});
+
+input.value = "";
+
+});
+
+</script>
+
+<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+
+<script>
+    const socket = io();
+    const ticketId = document.getElementById("ticketId").value;
+
+    socket.emit("join", { ticket_id: ticketId });
+
+    socket.on("show_typing", (data) => {
+
+        const typingMsg = document.getElementById("typing-msg");
+        const typingText = document.getElementById("typing-text");
+
+        const currentUserId = document.getElementById("currentUserId").value;
+
+        if (String(data.user_id) === currentUserId) {
+           return;
+        }
+
+        typingText.innerText = data.name + " is typing...";
+        typingMsg.style.display = "block";
+    });
+    socket.on("hide_typing", () => {
+
+        document.getElementById("typing-msg").style.display = "none";
+    });
+</script>
+
+<script>
+    const input = document.getElementById("messageInput");
+    let typingTimeout;
+    input.addEventListener("input", () => {
+        socket.emit("typing", { ticket_id: ticketId });
+
+        clearTimeout(typingTimeout);
+
+        typingTimeout = setTimeout(() => {
+            socket.emit("stop_typing", { ticket_id: ticketId });
+        }, 1000);
+    });
+</script>
+
+<script>
+    socket.on("show_typing", (data) => {
+
+        const typingMsg = document.getElementById("typing-msg");
+        const typingText = document.getElementById("typing-text");
+
+        const currentUserId = document.getElementById("currentUserId").value;
+
+        if (String(data.user_id) === currentUserId) {
+           return;
+        }
+
+        typingText.innerText = data.name + " is typing...";
+        typingMsg.style.display = "block";
+    });
+
+    socket.on("hide_typing", () => {
+
+        const typingMsg = document.getElementById("typing-msg");
+        typingMsg.style.display = "none";
+    });
+</script>
+
+<script>
+    window.addEventListener("beforeunload", () => {
+        socket.emit("stop_typing", { ticket_id: ticketId });
+    });
+</script>
+
+<audio id="notifSound" src="{{ url_for('static', filename='notify.mp3') }}"></audio>
+
+{% endblock %}

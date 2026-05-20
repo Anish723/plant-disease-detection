@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card p-4 shadow">
+            <h3 class="text-center">Login</h3>
+            <form method="POST" action="{{ url_for('main.login') }}">
+                <input name="email" type="email" class="form-control mb-3" placeholder="Email" required>
+                <input name="password" type="password" class="form-control mb-3" placeholder="Password" required>
+                <button class="btn btn-dark w-100">Login</button>
+            </form>
+            <div class="text-center mt-3">
+                <a href="{{ url_for('main.register') }}">Create Account</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

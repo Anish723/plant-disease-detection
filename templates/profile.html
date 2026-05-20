@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+<h2>My Profile</h2>
+
+<div class="card p-4 shadow">
+
+<img id="profilePreview"
+src="{{ url_for('static', filename=current_user.profile_image) if current_user.profile_image else url_for('static', filename='default.png') }}"
+width="120"
+class="rounded-circle mb-3">
+
+<form method="POST" enctype="multipart/form-data">
+
+<input name="username"
+value="{{ current_user.username }}"
+class="form-control mb-2">
+
+<input name="phone"
+value="{{ current_user.phone }}"
+placeholder="Phone Number"
+class="form-control mb-2">
+
+<select name="gender" class="form-control mb-2">
+
+<option value="Male"
+{% if current_user.gender=="Male" %}selected{% endif %}>Male</option>
+
+<option value="Female"
+{% if current_user.gender=="Female" %}selected{% endif %}>Female</option>
+
+<option value="Other"
+{% if current_user.gender=="Other" %}selected{% endif %}>Other</option>
+
+</select>
+
+<input type="file"
+name="profile_pic"
+id="profileInput"
+class="form-control mb-2">
+
+<button class="btn btn-primary w-100">
+Update Profile
+</button>
+
+</form>
+
+</div>
+
+</div>
+
+<script>
+
+const profileInput = document.getElementById("profileInput");
+const preview = document.getElementById("profilePreview");
+
+profileInput.addEventListener("change", function(){
+
+const file = this.files[0];
+
+if(file){
+
+const reader = new FileReader();
+
+reader.onload = function(e){
+
+preview.src = e.target.result;
+
+}
+
+reader.readAsDataURL(file);
+
+}
+
+});
+
+</script>
+
+{% endblock %}

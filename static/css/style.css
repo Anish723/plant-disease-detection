@@ -1,0 +1,18 @@
+body {
+    background: linear-gradient(135deg, #1d976c, #93f9b9);
+    min-height: 100vh;
+}
+
+.card {
+    border-radius: 20px;
+}
+
+#preview {
+    max-height: 250px;
+    margin-top: 15px;
+    display: none;
+}
+
+.spinner {
+    display: none;
+}
